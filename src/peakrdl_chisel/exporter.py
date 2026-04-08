@@ -98,7 +98,7 @@ def _collect_registers(addrmap: AddrmapNode) -> List[Dict[str, Any]]:
             "width": child.size * 8,  # size is in bytes
             "fields": fields,
             "is_array": child.is_array,
-            "is_external": getattr(child, "external", False),
+            "is_external": child.is_array and child.inst_name in ["gpr", "imem", "uniform"],
             "array_dim": child.array_dimensions[0] if child.is_array else 1,
             "array_stride": child.array_stride if child.is_array else child.size,
             # Derived access summary

@@ -27,6 +27,7 @@ class {{ module_name }}HwIO extends Bundle {
 {%- endif %}
 {%- endfor %}
 {%- else %}
+{%- if not reg.is_external %}
 {%- if reg.is_hw_readable %}
   // {{ reg.name }} HW read port (1-cycle SyncReadMem)
   val {{ reg.name }}_readAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
@@ -38,6 +39,7 @@ class {{ module_name }}HwIO extends Bundle {
   val {{ reg.name }}_writeAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
   val {{ reg.name }}_writeData = Input(UInt({{ reg.width }}.W))
   val {{ reg.name }}_writeEn   = Input(Bool())
+{%- endif %}
 {%- endif %}
 {%- endif %}
 {% endfor %}
@@ -59,7 +61,7 @@ class {{ module_name }}BusIO extends Bundle {
 // Register Offsets
 // ============================================================================
 
-object BorgGpuRegs {
+object {{ module_name }}Regs {
 {%- for reg in registers %}
   val {{ reg.name }}_offset = {{ reg.offset }}.U
 {%- endfor %}
@@ -81,10 +83,10 @@ class {{ module_name }}Regs extends Module {
   // Register storage
   // --------------------------------------------------------------------------
 {% for reg in registers %}
-{%- if reg.is_array %}
+{%- if reg.is_array and not reg.is_external %}
   // {{ reg.name }}[{{ reg.array_dim }}] @ 0x{{ '%03X' % reg.offset }} (stride {{ reg.array_stride }})
   val {{ reg.name }} = SyncReadMem({{ reg.array_dim }}, UInt({{ reg.width }}.W))
-{%- else %}
+{%- elif not reg.is_array %}
   // {{ reg.name }} @ 0x{{ '%03X' % reg.offset }}
 {%- for f in reg.fields %}
 {%- if not f.is_reserved %}
@@ -102,6 +104,7 @@ class {{ module_name }}Regs extends Module {
 {% for reg in registers %}
 {%- if reg.is_sw_writable %}
 {%- if reg.is_array %}
+{%- if not reg.is_external %}
   // {{ reg.name }}[] write
   {
     val arrayBase   = {{ reg.offset }}.U
@@ -112,6 +115,7 @@ class {{ module_name }}Regs extends Module {
       {{ reg.name }}.write(arrayIndex, io.bus.writeData)
     }
   }
+{%- endif %}
 {%- else %}
   when(io.bus.writeEn && io.bus.address === {{ reg.offset }}.U) {
 {%- for f in reg.fields %}
@@ -148,9 +152,11 @@ class {{ module_name }}Regs extends Module {
 {% for reg in registers %}
 {%- if reg.is_sw_readable %}
 {%- if reg.is_array %}
+{%- if not reg.is_external %}
     // {{ reg.name }}[] read (SyncReadMem — 1-cycle latency via readAddr)
     (readAddr >= {{ reg.offset }}.U && readAddr < {{ reg.offset + reg.array_dim * reg.array_stride }}.U) ->
       {{ reg.name }}.read((io.bus.address - {{ reg.offset }}.U) >> {{ (reg.array_stride).bit_length() - 1 }}, io.bus.readEn),
+{%- endif %}
 {%- else %}
     (readAddr === {{ reg.offset }}.U) -> Cat(
 {%- for f in reg.fields|reverse %}
@@ -171,6 +177,7 @@ class {{ module_name }}Regs extends Module {
   // --------------------------------------------------------------------------
 {% for reg in registers %}
 {%- if reg.is_array %}
+{%- if not reg.is_external %}
 {%- if reg.is_hw_readable %}
   io.hw.{{ reg.name }}_readData := {{ reg.name }}.read(io.hw.{{ reg.name }}_readAddr, io.hw.{{ reg.name }}_readEn)
 {%- endif %}
@@ -178,6 +185,7 @@ class {{ module_name }}Regs extends Module {
   when(io.hw.{{ reg.name }}_writeEn) {
     {{ reg.name }}.write(io.hw.{{ reg.name }}_writeAddr, io.hw.{{ reg.name }}_writeData)
   }
+{%- endif %}
 {%- endif %}
 {%- else %}
 {%- for f in reg.fields %}
