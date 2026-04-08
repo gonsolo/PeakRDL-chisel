@@ -26,6 +26,19 @@ class {{ module_name }}HwIO extends Bundle {
 {%- endif %}
 {%- endif %}
 {%- endfor %}
+{%- else %}
+{%- if reg.is_hw_readable %}
+  // {{ reg.name }} HW read port (1-cycle SyncReadMem)
+  val {{ reg.name }}_readAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
+  val {{ reg.name }}_readEn   = Input(Bool())
+  val {{ reg.name }}_readData = Output(UInt({{ reg.width }}.W))
+{%- endif %}
+{%- if reg.is_hw_writable %}
+  // {{ reg.name }} HW write port
+  val {{ reg.name }}_writeAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
+  val {{ reg.name }}_writeData = Input(UInt({{ reg.width }}.W))
+  val {{ reg.name }}_writeEn   = Input(Bool())
+{%- endif %}
 {%- endif %}
 {% endfor %}
 }
