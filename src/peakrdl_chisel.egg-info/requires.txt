@@ -1,0 +1,5 @@
+systemrdl-compiler~=1.32
+Jinja2>=2.11
+
+[cli]
+peakrdl-cli>=1.2.3

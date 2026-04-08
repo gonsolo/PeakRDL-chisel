@@ -1,0 +1,2 @@
+[peakrdl.exporters]
+chisel = peakrdl_chisel.__peakrdl__:Exporter

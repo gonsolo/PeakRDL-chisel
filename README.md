@@ -1,0 +1,48 @@
+# PeakRDL-chisel
+
+Generate Chisel3 register block modules from [SystemRDL](https://www.accellera.org/activities/working-groups/systemrdl).
+
+A [PeakRDL](https://peakrdl.readthedocs.io) plugin that compiles a SystemRDL
+register description into a synthesizable Chisel3 `Module` with:
+
+- **IO bundles** for bus and hardware interfaces
+- **Address decode** logic (write dispatch)
+- **Read mux** (combinational readback)
+- **Register storage** (`RegInit` for scalar registers, `SyncReadMem` for arrays)
+
+## Install
+
+```bash
+pip install .
+
+# Or editable for development:
+pip install -e .
+```
+
+## Usage
+
+### As a PeakRDL CLI plugin
+
+```bash
+peakrdl chisel --output-dir ./generated my_design.rdl
+```
+
+### As a Python library
+
+```python
+import systemrdl
+from peakrdl_chisel import ChiselExporter
+
+rdlc = systemrdl.RDLCompiler()
+rdlc.compile_file("my_design.rdl")
+root = rdlc.elaborate()
+
+exporter = ChiselExporter()
+exporter.export(root, "generated/")
+```
+
+## Status
+
+**Alpha** — skeleton implementation covering basic register types.
+Full field-level logic (singlepulse, hw/sw access control, interrupts) is not
+yet implemented.

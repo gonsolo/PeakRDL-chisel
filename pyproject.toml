@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peakrdl-chisel"
+version = "0.1.0"
+requires-python = ">=3.9"
+dependencies = [
+    "systemrdl-compiler ~= 1.32",
+    "Jinja2 >= 2.11",
+]
+
+authors = [
+    {name = "Andreas Wendleder"},
+]
+description = "Generate Chisel3 register block modules from SystemRDL"
+readme = "README.md"
+license = {text = "CERN-OHL-S-2.0"}
+keywords = [
+    "SystemRDL", "PeakRDL", "Chisel", "RISC-V", "registers", "generator",
+    "FPGA", "ASIC",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+
+[project.optional-dependencies]
+cli = [
+    "peakrdl-cli >= 1.2.3",
+]
+
+[project.urls]
+Source = "https://github.com/gonsolo/PeakRDL-chisel"
+Tracker = "https://github.com/gonsolo/PeakRDL-chisel/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "peakrdl_chisel.__about__.__version__"}
+
+[project.entry-points."peakrdl.exporters"]
+chisel = "peakrdl_chisel.__peakrdl__:Exporter"
