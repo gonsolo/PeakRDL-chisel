@@ -170,7 +170,16 @@ class {{ module_name }}Regs extends Module {
   // Hardware-facing connections
   // --------------------------------------------------------------------------
 {% for reg in registers %}
-{%- if not reg.is_array %}
+{%- if reg.is_array %}
+{%- if reg.is_hw_readable %}
+  io.hw.{{ reg.name }}_readData := {{ reg.name }}.read(io.hw.{{ reg.name }}_readAddr, io.hw.{{ reg.name }}_readEn)
+{%- endif %}
+{%- if reg.is_hw_writable %}
+  when(io.hw.{{ reg.name }}_writeEn) {
+    {{ reg.name }}.write(io.hw.{{ reg.name }}_writeAddr, io.hw.{{ reg.name }}_writeData)
+  }
+{%- endif %}
+{%- else %}
 {%- for f in reg.fields %}
 {%- if not f.is_reserved %}
 {%- if f.hw_write and f.hw_read %}
