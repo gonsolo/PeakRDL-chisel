@@ -52,15 +52,17 @@ object BorgGpuRegs {
 {%- endfor %}
 }
 
+class {{ module_name }}IO extends Bundle {
+  val bus = new {{ module_name }}BusIO
+  val hw  = new {{ module_name }}HwIO
+}
+
 // ============================================================================
 // Register block module
 // ============================================================================
 
 class {{ module_name }}Regs extends Module {
-  val io = IO(new Bundle {
-    val bus = new {{ module_name }}BusIO
-    val hw  = new {{ module_name }}HwIO
-  })
+  val io = IO(new {{ module_name }}IO)
 
   // --------------------------------------------------------------------------
   // Register storage
