@@ -90,7 +90,9 @@ class {{ module_name }}Regs extends Module {
   // {{ reg.name }} @ 0x{{ '%03X' % reg.offset }}
 {%- for f in reg.fields %}
 {%- if not f.is_reserved %}
-{%- if f.sw_write or f.hw_write %}
+{%- if f.hw_write and not f.sw_write %}
+  {# hw-write-only: skip RegInit, wire read mux directly to io.hw input #}
+{%- elif f.sw_write or f.hw_write %}
   val {{ reg.name }}_{{ f.name }}_reg = RegInit({{ f.reset }}.U({{ f.width }}.W))
 {%- endif %}
 {%- endif %}
@@ -161,7 +163,11 @@ class {{ module_name }}Regs extends Module {
     (readAddr === {{ reg.offset }}.U) -> Cat(
 {%- for f in reg.fields|reverse %}
 {%- if not f.is_reserved %}
+{%- if f.hw_write and not f.sw_write %}
+      io.hw.{{ reg.name }}_{{ f.name }}{{ "," if not loop.last else "" }}
+{%- else %}
       {{ reg.name }}_{{ f.name }}_reg{{ "," if not loop.last else "" }}
+{%- endif %}
 {%- else %}
       0.U({{ f.width }}.W){{ "," if not loop.last else "" }}
 {%- endif %}
@@ -196,7 +202,7 @@ class {{ module_name }}Regs extends Module {
 {%- elif f.hw_read and (f.sw_write or f.hw_write) %}
   io.hw.{{ reg.name }}_{{ f.name }} := {{ reg.name }}_{{ f.name }}_reg
 {%- elif f.hw_write and not f.sw_write %}
-  {{ reg.name }}_{{ f.name }}_reg := io.hw.{{ reg.name }}_{{ f.name }}
+  {# hw-write-only: no shadow register; read mux already wired directly to io.hw input #}
 {%- endif %}
 {%- endif %}
 {%- endfor %}
