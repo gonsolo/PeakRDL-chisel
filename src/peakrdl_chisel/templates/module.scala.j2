@@ -12,7 +12,7 @@ import chisel3.util._
 
 class {{ module_name }}HwIO extends Bundle {
 {% for reg in registers %}
-{%- if not reg.is_array %}
+{%- if not reg.is_array and not reg.is_nogen %}
 {%- for f in reg.fields %}
 {%- if not f.is_reserved %}
 {%- if f.hw_write and f.hw_read %}
@@ -26,8 +26,7 @@ class {{ module_name }}HwIO extends Bundle {
 {%- endif %}
 {%- endif %}
 {%- endfor %}
-{%- else %}
-{%- if not reg.is_external %}
+{%- elif reg.is_array and not reg.is_external and not reg.is_nogen %}
 {%- if reg.is_hw_readable %}
   // {{ reg.name }} HW read port (1-cycle SyncReadMem)
   val {{ reg.name }}_readAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
@@ -39,7 +38,6 @@ class {{ module_name }}HwIO extends Bundle {
   val {{ reg.name }}_writeAddr = Input(UInt({{ (reg.array_dim - 1).bit_length() }}.W))
   val {{ reg.name }}_writeData = Input(UInt({{ reg.width }}.W))
   val {{ reg.name }}_writeEn   = Input(Bool())
-{%- endif %}
 {%- endif %}
 {%- endif %}
 {% endfor %}
@@ -83,6 +81,7 @@ class {{ module_name }}Regs extends Module {
   // Register storage
   // --------------------------------------------------------------------------
 {% for reg in registers %}
+{%- if not reg.is_nogen %}
 {%- if reg.is_array and not reg.is_external %}
   // {{ reg.name }}[{{ reg.array_dim }}] @ 0x{{ '%03X' % reg.offset }} (stride {{ reg.array_stride }})
   val {{ reg.name }} = SyncReadMem({{ reg.array_dim }}, UInt({{ reg.width }}.W))
@@ -98,13 +97,16 @@ class {{ module_name }}Regs extends Module {
 {%- endif %}
 {%- endfor %}
 {%- endif %}
+{%- else %}
+  // {{ reg.name }} @ 0x{{ '%03X' % reg.offset }} — nogen: no hardware storage (disabled feature)
+{%- endif %}
 {% endfor %}
 
   // --------------------------------------------------------------------------
   // Address decode — write path
   // --------------------------------------------------------------------------
 {% for reg in registers %}
-{%- if reg.is_sw_writable %}
+{%- if not reg.is_nogen and reg.is_sw_writable %}
 {%- if reg.is_array %}
 {%- if not reg.is_external %}
   // {{ reg.name }}[] write
@@ -134,7 +136,7 @@ class {{ module_name }}Regs extends Module {
   // Singlepulse auto-clear
   // --------------------------------------------------------------------------
 {% for reg in registers %}
-{%- if not reg.is_array %}
+{%- if not reg.is_nogen and not reg.is_array %}
 {%- for f in reg.fields %}
 {%- if f.is_singlepulse and not f.is_reserved %}
   when(!io.bus.writeEn || io.bus.address =/= {{ reg.offset }}.U) {
@@ -152,7 +154,7 @@ class {{ module_name }}Regs extends Module {
 
   io.bus.readData := MuxCase(0.U, Seq(
 {% for reg in registers %}
-{%- if reg.is_sw_readable %}
+{%- if not reg.is_nogen and reg.is_sw_readable %}
 {%- if reg.is_array %}
 {%- if not reg.is_external %}
     // {{ reg.name }}[] read (SyncReadMem — 1-cycle latency via readAddr)
@@ -175,13 +177,14 @@ class {{ module_name }}Regs extends Module {
     ),
 {%- endif %}
 {%- endif %}
-{%- endfor %}
+{% endfor %}
   ))
 
   // --------------------------------------------------------------------------
   // Hardware-facing connections
   // --------------------------------------------------------------------------
 {% for reg in registers %}
+{%- if not reg.is_nogen %}
 {%- if reg.is_array %}
 {%- if not reg.is_external %}
 {%- if reg.is_hw_readable %}
@@ -206,6 +209,7 @@ class {{ module_name }}Regs extends Module {
 {%- endif %}
 {%- endif %}
 {%- endfor %}
+{%- endif %}
 {%- endif %}
 {%- endfor %}
 }

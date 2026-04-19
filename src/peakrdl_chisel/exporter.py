@@ -3,6 +3,16 @@
 The exporter collects register metadata (name, offset, width, fields, array
 dimensions) into plain dicts, then passes them to a Jinja2 template that emits
 a synthesizable Chisel3 Module.
+
+User-defined properties
+-----------------------
+  nogen (boolean, default false)
+    When set on a register *instance* in the addrmap, the exporter marks it as
+    ``is_nogen=True``.  The template then skips all storage, write-decode,
+    singlepulse, read-mux, and hw-port generation for that register.  The
+    register still appears in the offset-constant object so C/Python firmware
+    can still write to the MMIO address (the writes are silently ignored by
+    hardware, which is the desired behaviour for disabled feature registers).
 """
 
 import os
@@ -12,6 +22,7 @@ import jinja2 as jj
 from systemrdl.node import (
     RootNode, AddrmapNode, RegNode, FieldNode,
 )
+from systemrdl import RDLCompiler
 
 
 class ChiselExporter:
@@ -92,6 +103,11 @@ def _collect_registers(addrmap: AddrmapNode) -> List[Dict[str, Any]]:
 
         fields = _collect_fields(child)
 
+        # nogen: user property that suppresses hardware synthesis for this register.
+        # When true, offset constants are still emitted (for firmware compatibility)
+        # but storage, write-decode, singlepulse, read-mux and hw-ports are skipped.
+        nogen = bool(child.get_property("nogen", default=False))
+
         entry: Dict[str, Any] = {
             "name": child.inst_name,
             "offset": child.address_offset if not child.is_array else child.raw_address_offset,
@@ -106,6 +122,8 @@ def _collect_registers(addrmap: AddrmapNode) -> List[Dict[str, Any]]:
             "is_sw_writable": any(f["sw_write"] for f in fields),
             "is_hw_readable": any(f["hw_read"] for f in fields),
             "is_hw_writable": any(f["hw_write"] for f in fields),
+            # nogen suppresses all hardware synthesis for this register
+            "is_nogen": nogen,
         }
         regs.append(entry)
 
